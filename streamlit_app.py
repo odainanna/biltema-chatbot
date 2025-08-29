@@ -1,12 +1,26 @@
 import streamlit as st
 from openai import OpenAI
+import requests
+from urllib.parse import quote
+
+
+def fetch_biltema_context(query: str, limit: int = 2000):
+    """Fetch raw HTML from biltema.no search as context for RAG."""
+    url = f"https://www.biltema.no/sok/?query={quote(query)}"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        text = response.text[:limit]
+    except Exception as exc:  # pragma: no cover - best effort
+        text = f"Kunne ikke hente informasjon fra biltema.no: {exc}"
+    return text, url
 
 # Show title and description.
-st.title("💬 Chatbot")
+st.title("💬 Biltema-bot")
 st.write(
-    "This is a simple chatbot that uses OpenAI's GPT-3.5 model to generate responses. "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-    "You can also learn how to build this app step by step by [following our tutorial](https://docs.streamlit.io/develop/tutorials/llms/build-conversational-apps)."
+    "Dette er en MVP som hjelper kundeservice hos Biltema Tønsberg. "
+    "Boten bruker OpenAI sammen med informasjon fra biltema.no for å svare på "
+    "spørsmål om produktene. Oppgi din OpenAI API-nøkkel for å komme i gang."
 )
 
 # Ask user for their OpenAI API key via `st.text_input`.
@@ -39,18 +53,36 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Generate a response using the OpenAI API.
+        context, source_url = fetch_biltema_context(prompt)
+        with st.expander("RAG-kontekst"):
+            st.write(f"Kilde: {source_url}")
+            st.write(context)
+
+        messages_for_openai = [
+            {
+                "role": "system",
+                "content": (
+                    "Du er en hjelpsom assistent for Biltema Tønsberg. "
+                    "Bruk konteksten fra biltema.no når du svarer."
+                ),
+            }
+        ]
+        messages_for_openai.extend(
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.messages[:-1]
+        )
+        messages_for_openai.append(
+            {
+                "role": "user",
+                "content": f"{prompt}\n\nKontekst fra biltema.no:\n{context}",
+            }
+        )
         stream = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
+            messages=messages_for_openai,
             stream=True,
         )
 
-        # Stream the response to the chat using `st.write_stream`, then store it in 
-        # session state.
         with st.chat_message("assistant"):
             response = st.write_stream(stream)
         st.session_state.messages.append({"role": "assistant", "content": response})
