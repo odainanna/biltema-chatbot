@@ -1,19 +1,22 @@
-# 💬 Chatbot template
+# 💬 BILTEMA chatbot MVP
 
-A simple Streamlit app that shows how to build a chatbot using OpenAI's GPT-3.5.
+Denne applikasjonen er en enkel demonstrasjon av en kundeservicebot for Biltema
+Tønsberg. Boten bruker en Retrieval Augmented Generation (RAG) strategi for å
+hente informasjon fra biltema.no og kombinerer dette med OpenAI for å generere
+svar på spørsmål om produkter.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://chatbot-template.streamlit.app/)
+### Kjør lokalt
 
-### How to run it on your own machine
-
-1. Install the requirements
-
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
+1. Installer avhengighetene
 
    ```
-   $ streamlit run streamlit_app.py
+   pip install -r requirements.txt
    ```
+
+2. Start tjenesten
+
+   ```
+   streamlit run streamlit_app.py
+   ```
+
+Boten trenger en gyldig OpenAI API-nøkkel for å fungere.
